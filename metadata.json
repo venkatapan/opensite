@@ -1,0 +1,7 @@
+{
+  "name": "Travel Explorer",
+  "description": "A lightweight, AI-powered travel discovery assistant.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
