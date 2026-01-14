@@ -1,8 +1,6 @@
 import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { AutocompleteSuggestion, DestinationData } from "../types";
 
-const apiKey = "AIzaSyDKNwBsU7yMYpZSc-fYdg5HXX5VSjTNOiA";
-const ai = new GoogleGenAI({ apiKey });
 
 // Cache for autocomplete to save tokens/latency
 const autocompleteCache: Record<string, AutocompleteSuggestion[]> = {};
