@@ -10,28 +10,9 @@ const autocompleteCache: Record<string, AutocompleteSuggestion[]> = {};
 export const getAutocompleteSuggestions = async (
   query: string
 ): Promise<AutocompleteSuggestion[]> => {
-  if (!query || query.length < 3) return [];
-  if (autocompleteCache[query]) return autocompleteCache[query];
-
-  try {
-    const res = await fetch("/api/autocomplete", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ query })
-    });
-
-    if (!res.ok) throw new Error("Autocomplete API failed");
-
-    const data = await res.json();
-    autocompleteCache[query] = data;
-    return data;
-  } catch (error) {
-    console.error("Error fetching autocomplete:", error);
-    return [];
-  }
+  return [];
 };
+
 
 /* =======================
    DESTINATION DETAILS
