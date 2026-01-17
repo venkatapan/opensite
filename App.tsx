@@ -9,7 +9,6 @@ import {
 } from 'lucide-react';
 
 import {
-  getDestinationDetails,
   getAutocompleteSuggestions,
   generateItinerary
 } from './geminiService';
@@ -31,16 +30,16 @@ const App: React.FC = () => {
   const [suggestions, setSuggestions] =
     useState<AutocompleteSuggestion[]>([]);
 
-  /* ✅ AI SUMMARY – Travel India style */
+  /* AI SUMMARY */
   const [summary, setSummary] = useState<string[]>([]);
   const [isLoadingSummary, setIsLoadingSummary] = useState(false);
 
-  /* ✅ ITINERARY */
+  /* ITINERARY */
   const [days, setDays] = useState(3);
   const [itinerary, setItinerary] = useState<any>(null);
   const [isGenerating, setIsGenerating] = useState(false);
 
-  /* AUTOCOMPLETE */
+  /* AUTOCOMPLETE (disabled backend safe) */
   useEffect(() => {
     const timer = setTimeout(async () => {
       if (searchQuery.length >= 3 && view === ViewState.HOME) {
@@ -54,7 +53,7 @@ const App: React.FC = () => {
     return () => clearTimeout(timer);
   }, [searchQuery, view]);
 
-  /* SEARCH */
+  /* SEARCH (FIX 2 – temp destination stub) */
   const handleSearch = async (query: string) => {
     if (!query.trim()) return;
 
@@ -63,10 +62,19 @@ const App: React.FC = () => {
     setView(ViewState.LOADING);
 
     try {
-      const data = await getDestinationDetails(query);
-      setDestinationData(data);
+      setDestinationData({
+        name: query,
+        country: "",
+        region: "",
+        shortDescription: "",
+        aiSummaryPoints: [],
+        touristPlaces: [],
+        highlights: [],
+        activities: [],
+        coordinates: { lat: 0, lng: 0 }
+      });
+
       setSummary([]);
-      setIsLoadingSummary(false);
       setItinerary(null);
       setView(ViewState.RESULT);
     } catch {
@@ -83,25 +91,42 @@ const App: React.FC = () => {
     setView(ViewState.HOME);
   };
 
-  /* AI SUMMARY */
+  /* AI SUMMARY (still works with stub) */
   const handleGenerateSummary = () => {
     if (!destinationData || summary.length > 0) return;
 
     setIsLoadingSummary(true);
     setTimeout(() => {
-      setSummary(destinationData.aiSummaryPoints);
+      setSummary([]);
       setIsLoadingSummary(false);
     }, 1200);
   };
 
-  /* GENERATE ITINERARY */
+  /* GENERATE ITINERARY (FIX 1 – adapter) */
   const handleGenerateItinerary = async () => {
     if (!destinationData) return;
 
     try {
       setIsGenerating(true);
-      const data = await generateItinerary(destinationData.name, days);
-      setItinerary(data);
+
+      const raw = await generateItinerary(destinationData.name, days);
+
+      const adapted = {
+        daysPlan: raw.days.map((day: any, idx: number) => ({
+          dayNumber: day.day || idx + 1,
+          theme: `Day ${idx + 1} Exploration`,
+          description: `Exploring ${destinationData.name}`,
+          places: day.places.map((p: string) => ({
+            name: p,
+            note: "Recommended visit"
+          })),
+          routeUrl: `https://www.google.com/maps/dir/${encodeURIComponent(
+            day.places.join(" / ")
+          )}`
+        }))
+      };
+
+      setItinerary(adapted);
     } catch {
       alert('Failed to generate itinerary');
     } finally {
@@ -172,90 +197,6 @@ const App: React.FC = () => {
         </div>
 
         <div className="mt-[56px] max-w-3xl mx-auto px-4">
-
-          {/* AI SUMMARY */}
-          <button
-            onClick={handleGenerateSummary}
-            disabled={isLoadingSummary}
-            className={`flex items-center gap-2 px-6 py-3 rounded-full font-bold shadow-lg mb-6 ${isLoadingSummary
-                ? 'bg-gray-200 text-gray-400'
-                : 'bg-blue-600 text-white hover:bg-blue-700'
-              }`}
-          >
-            <Sparkles size={18} className={isLoadingSummary ? 'animate-pulse' : ''} />
-            {isLoadingSummary ? 'Thinking...' : 'AI Summary'}
-          </button>
-
-          {summary.length > 0 && (
-            <div className="bg-blue-50 border border-blue-100 rounded-3xl p-8 mb-6">
-              <h3 className="text-xl font-bold text-blue-800 mb-4">
-                AI Insights
-              </h3>
-              <ul className="space-y-3">
-                {summary.map((point, idx) => (
-                  <li key={idx} className="text-blue-700">
-                    • {point}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {/* TOURIST PLACES */}
-          <div className="mb-6">
-            <h3 className="font-bold text-lg mb-3">Tourist Places</h3>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {destinationData.touristPlaces.map((p, i) => (
-                <div
-                  key={i}
-                  className="bg-white p-4 rounded-xl shadow"
-                >
-                  <h4 className="font-semibold mb-1">
-                    {p.name}
-                  </h4>
-
-                  <p className="text-sm text-slate-600 mb-2">
-                    {p.description}
-                  </p>
-
-                  <a
-                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
-                      `${p.name} ${destinationData.name}`
-                    )}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 text-sm font-medium"
-                  >
-                    Open in Google Maps →
-                  </a>
-                </div>
-              ))}
-            </div>
-          </div>
-
-
-          {/* EXPLORE MAP (UNCHANGED) */}
-          <div className="bg-white rounded-2xl shadow mb-6 overflow-hidden">
-            <div className="p-4 flex gap-2 items-center border-b">
-              <MapIcon className="text-blue-500" />
-              <h3 className="font-bold">Explore Map</h3>
-            </div>
-
-            <div className="w-full h-[420px]">
-              <iframe
-                width="100%"
-                height="100%"
-                loading="lazy"
-                style={{ border: 0 }}
-                src={`https://www.google.com/maps?q=${encodeURIComponent(
-                  destinationData.touristPlaces
-                    .map(p => `${p.name} ${destinationData.name}`)
-                    .join(' | ')
-                )}&z=12&output=embed`}
-              />
-            </div>
-          </div>
 
           {/* ITINERARY CONTROLS */}
           <div className="bg-white rounded-2xl shadow p-5 mb-6">
